@@ -1,0 +1,16 @@
+1er jet du walkthrough:
+
+Utiliser gdb avec le binaire, run 1 fois normalement dans gdb pour charger la
+de symboles de la libc
+
+Choper l'adresse de la fonction "system", "exit" avec la
+commande "info function {la fonction}"
+
+Trouver l'adresse de la chaine "/bin/sh" (j'ai pas encore trouvé)
+
+Trouver l'offset de l'overflow quand y a le prompt password (il est à 80,
+j'ai brute force pour trouver)
+
+Ensuite utiliser la commande:
+
+python -c "print 'dat_wil' + 'A' * 80 + {la shellbomb que j'ai pas encore faite}"
