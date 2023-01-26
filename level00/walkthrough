@@ -1,8 +1,15 @@
-1er jet:
+We've started executing the binary to see what was asking.
 
-Plutot simple, il suffit d'utiliser gdb sur le binaire, puis désassembler le main
+It asked a password and if you were wrong the output was "Invalid Password!".
 
-On identifie facilement une comparaison juste après le scanf
-Il compare eax à une valeur en hexa (0x149c = 5276 en décimal)
+We've disassembled the binary before using:
 
-Et voilà le mdp pour passer le check qui va ensuite lancer system("/bin/sh")
+objdump -d level00 and after gdb level00.
+
+We found the scanf call and the cmp call:
+
+0x080484e7 <+83>:	cmp    $0x149c,%eax
+
+from here it was easy to guess that the password was "0x149c" that in decimals is 5276.
+
+We've tried and "Authenticated!" we got the flag to get to level01.
