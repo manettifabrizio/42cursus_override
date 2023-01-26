@@ -1,93 +1,20 @@
 #include <stdio.h>
-#include <stdbool.h>
 
-extern unsigned int a_user_name;
-
-int verify_user_name()
+int main()
 {
-    int __saved_esi;
-    bool c = &__saved_esi < 16;
-    bool z = &__saved_esi == 16;
-    int ecx = 7;
-    char *esi = &a_user_name;
-    char *edi = "dat_wil";
+    int buf[4];
 
-    puts("verifying username....\n");
-    while (ecx != 0)
+    puts("***********************************");
+    puts("* \t     -Level00 -\t\t  *");
+    puts("***********************************");
+    printf("Password:");
+    scanf("%d", &buf);
+    if (buf[0] != 5276)
     {
-        char temp1_1 = *esi;
-        char temp2_1 = *edi;
-
-        c = temp1_1 < temp2_1;
-        z = temp1_1 == temp2_1;
-        esi = &esi[1];
-        edi++;
-        ecx--;
-        if ((!z))
-        {
-            break;
-        }
+        puts("\nInvalid Password!");
+        return 1;
     }
-    return (((!z) && (!c)) - c);
-}
-
-int verify_user_pass(char *pass)
-{
-    char *esi = pass;
-    char *edi = "admin";
-    int ecx = 5;
-    bool c, z;
-
-    while (ecx != 0)
-    {
-        char tmp0 = *esi;
-        char tmp1 = *edi;
-
-        c = tmp0 < tmp1;
-        z = tmp0 == tmp1;
-        esi = &esi[1];
-        edi++;
-        ecx--;
-        if ((!z))
-            break;
-    }
-    return (((!z) && (!c)) - c);
-}
-
-extern char a_user_name;
-
-int main(int argc, char **argv, char **envp)
-{
-    char buf[80];
-    int check_1, check_2;
-    int var_14 = 0;
-    int *edi = &buf;
-
-    for (int ecx = 16; ecx != 0; ecx--)
-    {
-        *edi = 0;
-        ++edi;
-    }
-    puts("********* ADMIN LOGIN PROMPT ***…");
-    printf("Enter Username: ");
-    fgets(&a_user_name, 256, stdin);
-    if (verify_user_name() != 0)
-    {
-        puts("nope, incorrect username...\n");
-        check_1 = 1;
-    }
-    else
-    {
-        puts("Enter Password: ");
-        fgets(&buf, 100, stdin);
-        check_2 = verify_user_pass(&buf);
-        if ((check_2 == 0 || (check_2 != 0 && check_2 != 0)))
-        {
-            puts("nope, incorrect password...\n");
-            check_1 = 1;
-        }
-        if (check_2 == 0)
-            check_1 = 0;
-    }
-    return check_1;
+    puts("\nAuthenticated!");
+    system("/bin/sh");
+    return 0;
 }
