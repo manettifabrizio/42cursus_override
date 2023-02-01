@@ -1,0 +1,18 @@
+En regardant le disassembly de la fonction main on voit les deux parametres
+envoyes a test: le resultat de scanf et une valeur fixe en hexa (0x1337d00d)
+qui vaut 322424845
+
+Pendant test on soustrait l'input a cette valeur, soit:
+
+322424845 - input
+
+Considerant que la fonction test, teste 21 possibilites fixes ou une valeur
+random si la difference est au dela de la plage [1, 21]
+
+Apres plusieurs tests avec:
+
+for i in {322424824..322424845}; do echo "$i" | ./level03 ; done
+
+On remarque que le 4e resultat est le bon, soit:
+
+322424827
