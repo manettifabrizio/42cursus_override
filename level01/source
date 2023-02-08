@@ -1,93 +1,66 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-extern unsigned int a_user_name;
+char a_user_name[100];
 
 int verify_user_name()
 {
-    int __saved_esi;
-    bool c = &__saved_esi < 16;
-    bool z = &__saved_esi == 16;
-    int ecx = 7;
-    char *esi = &a_user_name;
-    char *edi = "dat_wil";
+    char *user_name = &a_user_name;
+    char *known_name = "dat_wil";
 
     puts("verifying username....\n");
-    while (ecx != 0)
+    for (int i = 0; i < 7; i++)
     {
-        char temp1_1 = *esi;
-        char temp2_1 = *edi;
-
-        c = temp1_1 < temp2_1;
-        z = temp1_1 == temp2_1;
-        esi = &esi[1];
-        edi++;
-        ecx--;
-        if ((!z))
+        if (user_name[i] != known_name[i])
         {
-            break;
+            return 1;
         }
     }
-    return (((!z) && (!c)) - c);
+    return 0;
 }
 
 int verify_user_pass(char *pass)
 {
-    char *esi = pass;
-    char *edi = "admin";
-    int ecx = 5;
-    bool c, z;
+    char *input_pass = pass;
+    char *known_pass = "admin";
 
-    while (ecx != 0)
+    for (int i = 0; i < 5; i++)
     {
-        char tmp0 = *esi;
-        char tmp1 = *edi;
-
-        c = tmp0 < tmp1;
-        z = tmp0 == tmp1;
-        esi = &esi[1];
-        edi++;
-        ecx--;
-        if ((!z))
-            break;
+        if (input_pass[i] != known_pass[i])
+        {
+            return 1;
+        }
     }
-    return (((!z) && (!c)) - c);
+    return 0;
 }
 
-extern char a_user_name;
-
-int main(int argc, char **argv, char **envp)
+int main()
 {
     char buf[80];
-    int check_1, check_2;
-    int var_14 = 0;
-    int *edi = &buf;
+    int check_username, check_password;
 
-    for (int ecx = 16; ecx != 0; ecx--)
-    {
-        *edi = 0;
-        ++edi;
-    }
-    puts("********* ADMIN LOGIN PROMPT ***…");
+    puts("********* ADMIN LOGIN PROMPT *********");
     printf("Enter Username: ");
-    fgets(&a_user_name, 256, stdin);
+    scanf("%s", &a_user_name);
     if (verify_user_name() != 0)
     {
-        puts("nope, incorrect username...\n");
-        check_1 = 1;
+        puts("Incorrect username");
+        check_username = 1;
     }
     else
     {
         puts("Enter Password: ");
-        fgets(&buf, 100, stdin);
-        check_2 = verify_user_pass(&buf);
-        if ((check_2 == 0 || (check_2 != 0 && check_2 != 0)))
+        scanf("%s", &buf);
+        check_password = verify_user_pass(&buf);
+        if (check_password != 0)
         {
-            puts("nope, incorrect password...\n");
-            check_1 = 1;
+            puts("nope, incorrect password...");
+            check_username = 1;
         }
-        if (check_2 == 0)
-            check_1 = 0;
+        else
+        {
+            check_username = 0;
+        }
     }
-    return check_1;
+    return check_username;
 }
