@@ -16,34 +16,34 @@
     - [x] walkthrough
     - [x] source
 
-- [] level02
-    - [] walkthrough
-    - [] source
+- [ ] level02
+    - [ ] walkthrough
+    - [ ] source
 
-- [] level03
-    - [] walkthrough
-    - [] source
+- [ ] level03
+    - [ ] walkthrough
+    - [ ] source
 
-- [] level04
-    - [] walkthrough
-    - [] source
+- [ ] level04
+    - [ ] walkthrough
+    - [ ] source
 
-- [] level05
+- [ ] level05
     - [x] walkthrough
-    - [] source
+    - [ ] source
 
-- [] level06
+- [ ] level06
     - [x] walkthrough
-    - [] source
+    - [ ] source
 
-- [] level07
-    - [] walkthrough
-    - [] source
+- [ ] level07
+    - [ ] walkthrough
+    - [ ] source
 
-- [] level08
-    - [] walkthrough
-    - [] source
+- [ ] level08
+    - [ ] walkthrough
+    - [ ] source
 
-- [] level09
-    - [] walkthrough
-    - [] source
+- [ ] level09
+    - [ ] walkthrough
+    - [ ] source
