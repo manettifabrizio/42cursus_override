@@ -3,20 +3,20 @@
 
 int main()
 {
-    int buf[4];
+    int number;
 
     puts("***********************************");
     puts("* \t     -Level00 -\t\t  *");
     puts("***********************************");
     printf("Password:");
 
-    scanf("%d", &buf);
-    if (buf[0] != 5276)
+    scanf("%d", &number);
+    if (number == 5276)
     {
-        puts("\nInvalid Password!");
-        return (1);
+        puts("\nAuthenticated!");
+        system("/bin/sh");
+        return (0);
     }
-    puts("\nAuthenticated!");
-    system("/bin/sh");
-    return (0);
+    puts("\nInvalid Password!");
+    return (1);
 }
