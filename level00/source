@@ -20,3 +20,5 @@ int main()
     puts("\nInvalid Password!");
     return (1);
 }
+
+// Compile with -m32
