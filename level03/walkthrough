@@ -1,3 +1,20 @@
+We've started executing the binary to see what was asking.
+
+It asked a username and a password. If the input was wrong it printed "<username> does not have access!".
+Probably a printf was involved.
+
+
+
+
+
+
+
+
+
+
+
+
+
 En regardant le disassembly de la fonction main on voit les deux parametres
 envoyes a test: le resultat de scanf et une valeur fixe en hexa (0x1337d00d)
 qui vaut 322424845
