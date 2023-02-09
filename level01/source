@@ -1,44 +1,45 @@
 #include <stdio.h>
 #include <string.h>
 
-char *username;
+char username[100];
 
 int verify_user_name(void)
 {
-    puts("verifying username....\n");
-    return strncmp(username, "dat_wil", 7);
+	puts("verifying username....\n");
+	return strncmp(username, "dat_wil", 7);
 }
 
 int verify_user_pass(char *passwd)
 {
-    return strncmp(passwd, "admin", 5);
+	return strncmp(passwd, "admin", 5);
 }
 
-int main()
+int main(void)
 {
-    char passwd[64] = {0};
-    int result = 0;
+	char passwd[64] = {0};
+	int result = 0;
 
-    puts("********* ADMIN LOGIN PROMPT *********");
-    printf("Enter Username: ");
-    fgets(username, 256, stdin);
+	puts("********* ADMIN LOGIN PROMPT *********");
+	printf("Enter Username: ");
+	fgets(username, 256, stdin);
 
-    if (verify_user_name() != 0)
-    {
-        puts("nope, incorrect username...\n");
-        return (1);
-    }
+	result = verify_user_name();
+	if (result != 0)
+	{
+		puts("nope, incorrect username...\n");
+		return (1);
+	}
 
-    puts("Enter Password: ");
-    fgets(passwd, 100, stdin);
+	puts("Enter Password: ");
+	fgets(passwd, 100, stdin);
 
-    result = verify_user_pass(passwd);
-    if (result == 0 || result != 0)
-    {
-        puts("nope, incorrect password...\n");
-        return (1);
-    }
-    return (0);
+	result = verify_user_pass(passwd);
+	if (result == 0 || result != 0)
+	{
+		puts("nope, incorrect password...\n");
+		return (1);
+	}
+	return (0);
 }
 
-// Compile with -m32 -fno-stack-protector
+// Compile with -m32 -z execstack -fno-stack-protector
