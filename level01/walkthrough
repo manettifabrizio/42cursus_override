@@ -69,7 +69,7 @@ info functions system
 0xf7e6aed0  system
 
 info functions exit
-
+0xf7e5eb70  exit
 
 to find /bin/sh we need to print the env variables and search for the SHELL one
 

