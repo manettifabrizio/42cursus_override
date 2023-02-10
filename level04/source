@@ -1,0 +1,41 @@
+#include <stdio.h>
+#include <string.h>
+#include <sys/ptrace.h>
+
+int main(int argc, const char **argv, const char **envp)
+{
+    int stat_lock;
+    char s[128];
+    int ret;
+    int trash1;
+    int trash2;
+    __pid_t pid = fork();
+
+    memset(s, 0, sizeof(s));
+    ret = 0;
+    stat_lock = 0;
+    if (pid)
+    {
+        do
+        {
+            wait(&stat_lock);
+            trash1 = stat_lock;
+            if ((stat_lock & 0x7F) == 0 || (trash2 = stat_lock, (char)((stat_lock & 0x7F) + 1) >> 1 > 0))
+            {
+                puts("child is exiting...");
+                return 0;
+            }
+            ret = ptrace(PTRACE_PEEKUSER, pid, 44, 0);
+        } while (ret != 11);
+        puts("no exec() for you");
+        kill(pid, 9);
+    }
+    else
+    {
+        prctl(1, 1);
+        ptrace(PTRACE_TRACEME, 0, 0, 0);
+        puts("Give me some shellcode, k");
+        gets(s);
+    }
+    return 0;
+}
