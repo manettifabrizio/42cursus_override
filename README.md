@@ -53,3 +53,8 @@ For more detailed information, look at the [**subject of this project**](https:/
 - [x] level09
     - [x] walkthrough
     - [x] source
+
+## Sources
+
+https://wiremask.eu/tools/buffer-overflow-pattern-generator/
+https://axcheron.github.io/exploit-101-format-strings/
