@@ -1,35 +1,47 @@
 We've started executing the binary to see what was asking.
 
-It asked a username and a password. If the input was wrong it printed "<username> does not have access!".
-Probably a printf was involved.
+It asked a password. If the input was wrong it printed "Invalid Password".
+
+Disassembling main with gdb we noticed that test was called from main with the fixed value 322424845.
+
+Dump of assembler code for function main:
+...
+0x080488c1 <+103>:	call   0x8048530 <__isoc99_scanf@plt>
+0x080488c6 <+108>:	mov    eax,DWORD PTR [esp+0x1c]
+0x080488ca <+112>:	mov    DWORD PTR [esp+0x4],0x1337d00d     <- fixed value 322424845 is passed as second parameter
+0x080488d2 <+120>:	mov    DWORD PTR [esp],eax                <- scanf return value is passed as first parameter
+0x080488d5 <+123>:	call   0x8048747 <test>
+0x080488da <+128>:	mov    eax,0x0
+0x080488df <+133>:	leave
+0x080488e0 <+134>:	ret
+End of assembler dump.
+
+Disassembling test we noticed that there was a substraction between 322424845
+and password. Then if the result is 0 or is >= 10 and < 15 or is > 21 decrypt is
+called with rand() as parameter else as the result as parameter.
 
 
+Disassembling decrypt we can see that a XOR is performed between each char of
+'Q}|u`sfg~sf{}|a3' and the first argument of decrypt.
 
+If the resulting string is equal to 'Congratulations!' it calls system('/bin/sh').
 
+To get the password we can inverse the differents operations building a simple
+equation:
 
+322424845 - x = 'C' ^ 'Q'
 
+C from 'Congratulations!' and Q from 'Q}|u`sfg~sf{}|a3'
 
+x = 322424845 - 18 = 322424827
 
+We input the password and we get level04 shell.
 
-
-
-
-
-En regardant le disassembly de la fonction main on voit les deux parametres
-envoyes a test: le resultat de scanf et une valeur fixe en hexa (0x1337d00d)
-qui vaut 322424845
-
-Pendant test on soustrait l'input a cette valeur, soit:
-
-322424845 - input
-
-Considerant que la fonction test, teste 21 possibilites fixes ou une valeur
-random si la difference est au dela de la plage [1, 21]
-
-Apres plusieurs tests avec:
-
-for i in {322424824..322424845}; do echo "$i" | ./level03 ; done
-
-On remarque que le 4e resultat est le bon, soit:
-
-322424827
+***********************************
+*		level03		**
+***********************************
+Password:322424827
+$ whoami
+level04
+$ cat ~level04/.pass
+kgv3tkEb9h2mLkRsPkXRfc2mHbjMxQzvb2FrgKkf
