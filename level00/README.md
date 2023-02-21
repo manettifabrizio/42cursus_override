@@ -8,22 +8,41 @@ It asked a password and if you were wrong the output was:
 
 We've disassembled the binary before using:
 
-```objdump -d level00```
+```gdb level00```
 
-and after
+```disas main```
 
-```gdb level00```.
+In the main we found a compare instruction followed by a conditional jump (jump when not equal):
 
-We found the scanf call and the cmp call:
+```
+Dump of assembler code for function main:
+...
+0x080484e7 <+83>:	cmp    eax,0x149c                      <- compare eax with 0x149c (5276 in decimals)
+0x080484ec <+88>:	jne    0x804850d <main+121>            <- if not equal jump to main+121
+0x080484ee <+90>:	mov    DWORD PTR [esp],0x8048639
+0x080484f5 <+97>:	call   0x8048390 <puts@plt>
+0x080484fa <+102>:	mov    DWORD PTR [esp],0x8048649       <-- "Authenticated!"
+0x08048501 <+109>:	call   0x80483a0 <system@plt>          <-- /bin/sh
+...
+0x0804850d <+121>:	mov    DWORD PTR [esp],0x8048651       <- charge "Invalid Password" and return
+0x08048514 <+128>:	call   0x8048390 <puts@plt>
+0x08048519 <+133>:	mov    eax,0x1
+0x0804851e <+138>:	leave
+0x0804851f <+139>:	ret
+```
 
-```   0x080484e7 <+83>:	cmp    $0x149c,%eax```
+from here it was easy to guess that the password was "0x149c" that in decimals is 5276.
 
-from here it was easy to guess that the password was:
+We've executed the binary outside of gdb and "Authenticated!".
 
-```0x149c``` that in decimals is ```5276```.
+We got access to the shell as user level01.
 
-We've tried and...
+```
+$ whoami
+level01
+```
 
-**Authenticated!**
-
-we got the flag to get to level01.
+```
+$ cat ~level01/.pass
+uSq2ehEGT6c9S24zbshexZQBXUGrncxn5sD5QfGL
+```

